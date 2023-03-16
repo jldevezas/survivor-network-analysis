@@ -10,7 +10,8 @@
             "request": "launch",
             "program": "${file}",
             "args": [
-                "https://survivor.fandom.com/wiki/Australian_Survivor:_Blood_v_Water",
+                // "https://survivor.fandom.com/wiki/Australian_Survivor:_Blood_v_Water",
+                "https://survivor.fandom.com/wiki/Australian_Survivor:_Heroes_v_Villains",
                 "15"
             ],
             "console": "integratedTerminal",
