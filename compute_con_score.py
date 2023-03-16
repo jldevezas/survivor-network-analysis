@@ -50,13 +50,21 @@ soup = BeautifulSoup(data.content, "html5lib")
 table = soup.select_one("#Voting_History").parent.find_next_sibling("table")
 df = pd.read_html(str(table), header=(0, 1, 2, 3))[0]
 
+# Extract voted out
+voted_out = df.T.reset_index().T.iloc[[1, 2], 2:]
+voted_out = voted_out.rename(dict(level_1="Episode", level_2="Voted Out")).T
+voted_out.set_index("Episode", inplace=True)
+voted_out.replace(["Mock Vote", "Tie", "Mutiny"], np.nan, inplace=True)
+
 # Drop last row (Notes)
 df = df.iloc[:-1, :]
 
-# Drop the first column
+# Drop the first column (arrows)
 df.drop(columns=df.columns[0:1], inplace=True)
 
+##
 # Identify and drop all columns with Jury votes (when available)
+##
 
 jury_vote_cols = df.iloc[0].index[df.iloc[0] == "Jury Vote"]
 
@@ -71,19 +79,22 @@ try:
 except ValueError:
     pass
 
-# Set column index as Episode and row index as Voter
+# Set column index as "Episode" and row index as "Voter"
 df = df.T.reset_index().rename(columns=dict(level_1="Episode")).set_index("Episode").T.iloc[3:]
 df = df.rename(columns=dict(Episode="Voter")).set_index("Voter")
 
 # Replace empty votes or specific actions (e.g, Eliminated) by NaN
 df.replace(["—", "Eliminated", "Evacuated", "Quit", "Returned", "None", "None6", "Exempt2"], np.nan, inplace=True)
 
-# Ignore data prior to max_episode
+# Ignore data prior to max_episode and remove other non-numeric "episode columns" (FIXME might miss data)
 if max_episode:
     ignore_episodes = [episode for episode in df.columns if not episode.isnumeric() or int(episode) > max_episode]
     df.drop(columns=ignore_episodes, inplace=True)
+    voted_out.drop(index=ignore_episodes, inplace=True)
 
-# Simplify into voting data edges
+##
+# Extract voting data edges
+##
 
 votes = {}
 
@@ -92,13 +103,18 @@ for voter, row in df.iterrows():
 
 # Build the graph
 g = igraph.Graph.TupleList([(k, v, 1) for k, vs in votes.items() for v in vs], directed=True, edge_attrs=["weight"])
-print(g)
+# print(g)
 
-# Merge edges but keep weight
+# Collapse multiple edges into a single weighted edge
 g.simplify(combine_edges="sum")
-print(g.es[0])
+# print(g.es[0])
 
-# Run the analysis
+# Get names of voted out contestants
+voted_out_names = voted_out.iloc[:, 0].dropna().tolist()
+
+##
+# Run the ranking analysis
+##
 
 names = []
 scores = []
@@ -108,5 +124,10 @@ for v in g.vs:
     names.append(v["name"])
     scores.append(CON(A, v))
 
-ranking = pd.DataFrame(dict(name=names, score=scores)).sort_values(by="score", ascending=False).reset_index(drop=True)
+ranking = pd.DataFrame(dict(name=names, score=scores)).sort_values(by="score", ascending=False)
+ranking = ranking[~ranking.name.isin(voted_out_names)]
+ranking.reset_index(drop=True, inplace=True)
+ranking.index.rename("rank", inplace=True)
+ranking.index += 1
+
 print(ranking)
