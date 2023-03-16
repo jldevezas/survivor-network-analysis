@@ -23,6 +23,25 @@ You can then run the script. For example, for Survivor AU, season 10, entitled "
 ./compute_con_score.py "https://survivor.fandom.com/wiki/Australian_Survivor:_Heroes_v_Villains" 15
 ```
 
+Should produce:
+
+```
+        name  score
+rank
+1     Shonee     75
+2      Simon     65
+3        Liz     64
+4     George     59
+5      Gerry     56
+6       Matt     48
+7     Hayley     46
+8       Nina     38
+9      Shaun     36
+10       Sam     34
+```
+
+This shows that, according to voting data until episode 15, Sam is the most likely to be voted out next, and Shonee is the best positioned to win (assuming the jury will vote for her at the end, of course).
+
 ## Future
 
 I might also explore this graph data later on again, using my own ideas, but, for now, it's been fun.
